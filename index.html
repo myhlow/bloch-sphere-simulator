@@ -58,6 +58,7 @@
       left: 24px;
       z-index: 10;
       pointer-events: none;
+      max-width: calc(100vw - 420px);
     }
     .top-bar h1 {
       font-size: 1.35rem;
@@ -292,38 +293,70 @@
     }
     .hint-box {
       position: absolute;
-      bottom: 10px;
+      bottom: 16px;
       left: 24px;
       z-index: 10;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid #334155;
       backdrop-filter: blur(8px);
-      padding: 8px 14px;
-      border-radius: 8px;
+      padding: 7px 16px;
+      border-radius: 6px;
       font-size: 0.75rem;
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       pointer-events: none;
+      white-space: nowrap;
+    }
+    .hint-mobile {
+      display: none;
+    }
+    .subtitle-mobile {
+      display: none;
     }
     @media (max-width: 860px) {
       body {
         overflow-y: auto;
+      }
+      .top-bar {
+        max-width: calc(100% - 32px);
+        top: 12px;
+        left: 16px;
+      }
+      .top-bar h1 { font-size: 1.15rem; }
+      .subtitle-desktop { display: none; }
+      .subtitle-mobile {
+        display: block;
+        font-size: 0.72rem;
+        line-height: 1.35;
+      }
+      #canvas-container {
+        position: relative;
+        width: 100%;
+        height: 52vh;
+        min-height: 380px;
+        max-height: 520px;
+      }
+      .hint-desktop { display: none; }
+      .hint-mobile { display: inline; }
+      .hint-box {
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.68rem;
+        padding: 5px 12px;
+        max-width: calc(100% - 32px);
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .panel {
         position: relative;
         top: auto;
         right: auto;
         width: calc(100% - 32px);
-        margin: calc(52vh + 20px) 16px 20px 16px;
+        margin: 14px 16px 24px 16px;
         max-height: none;
-      }
-      #canvas-container {
-        height: 52vh;
-      }
-      .hint-box {
-        bottom: calc(100vh - 50vh);
       }
     }
   </style>
@@ -335,17 +368,16 @@
       <span>⚛️ Bloch Sphere Simulator</span>
       <span class="badge">Module 2</span>
     </h1>
-    <p>3D Single-Qubit Parameterization: Polar Angle &theta; &amp; Azimuthal Phase &#981;</p>
+    <p class="subtitle-desktop">3D Single-Qubit Parameterization: Polar Angle &theta; &amp; Azimuthal Phase &#981;</p>
+    <p class="subtitle-mobile">Single-Qubit State: Polar Angle &theta; &amp; Relative Phase &#981;</p>
   </div>
 
   <div id="canvas-container">
     <canvas id="bloch-canvas"></canvas>
-  </div>
-
-  <div class="hint-box">
-    <span>🖱️ Drag: Rotate 3D View</span> &bull; 
-    <span>Scroll / Pinch: Zoom</span> &bull; 
-    <span>Click Presets: Snap State</span>
+    <div class="hint-box">
+      <span class="hint-desktop">🖱️ Drag: Rotate 3D View &bull; Scroll / Pinch: Zoom &bull; Click Presets: Snap State</span>
+      <span class="hint-mobile">👆 Drag: Rotate 3D View &bull; Pinch: Zoom &bull; Tap Presets</span>
+    </div>
   </div>
 
   <div class="panel">
@@ -511,11 +543,44 @@
     // 3D Math & Projection
     // Physics axes:
     // +x points forward/right, +y points right/depth, +z points vertically up.
+    let layoutCx = 0;
+    let layoutCy = 0;
+    let layoutBaseR = 100;
+
+    function computeLayout() {
+      const isMobile = width <= 860;
+      const topBarEl = document.querySelector('.top-bar');
+      const hintBoxEl = document.querySelector('.hint-box');
+
+      // Actual rendered bounding heights
+      const topBarHeight = topBarEl ? topBarEl.offsetHeight : (isMobile ? 42 : 54);
+      const hintBoxHeight = hintBoxEl ? hintBoxEl.offsetHeight : (isMobile ? 26 : 30);
+
+      // Top clearance: top offset + height of topBar + extra breathing margin
+      const topOffset = isMobile ? 12 : 18;
+      const topMargin = isMobile ? 26 : 32;
+      const topClearance = topOffset + topBarHeight + topMargin;
+
+      // Bottom clearance: bottom offset + height of hintBox + extra breathing margin
+      const bottomOffset = isMobile ? 12 : 16;
+      const bottomMargin = isMobile ? 26 : 32;
+      const bottomClearance = bottomOffset + hintBoxHeight + bottomMargin;
+
+      const availH = Math.max(160, height - topClearance - bottomClearance);
+      const availW = isMobile ? width : Math.max(200, width - 420);
+
+      layoutCx = isMobile ? (width * 0.5) : (availW * 0.5);
+      layoutCy = topClearance + (availH * 0.5);
+
+      // Safe baseR so full axis length 1.35 and labels fit comfortably
+      const maxAxisR = Math.min(
+        availW * 0.5 * (isMobile ? 0.82 : 0.78),
+        availH * 0.5 * (isMobile ? 0.90 : 0.86)
+      );
+      layoutBaseR = (maxAxisR / 1.48) * zoom;
+    }
+
     function project3D(x, y, z, radius) {
-      // Rotate around X axis (elevation / tilt)
-      // Rotate around Z axis (azimuth)
-      // Let's standard 3D rotation matrix:
-      // First rotate around vertical Z axis by rotY:
       const cosY = Math.cos(rotY);
       const sinY = Math.sin(rotY);
       const x1 = x * cosY - y * sinY;
@@ -529,19 +594,14 @@
       const y2 = y1 * cosX - z1 * sinX;
       const z2 = y1 * sinX + z1 * cosX;
 
-      // Center of projection: center of canvas, shifted slightly left to balance panel
-      const cx = width > 860 ? (width - 380) * 0.5 : width * 0.5;
-      const cy = height * 0.545;
+      const screenX = layoutCx + x2 * layoutBaseR;
+      const screenY = layoutCy - z2 * layoutBaseR; // y2 is depth into screen
 
-      // Scale factor based on canvas size
-      const baseR = Math.min(width * 0.265, height * 0.27) * zoom;
-      const screenX = cx + x2 * baseR;
-      const screenY = cy - z2 * baseR; // y2 is depth into screen
-
-      return { x: screenX, y: screenY, depth: y2, scaleR: baseR };
+      return { x: screenX, y: screenY, depth: y2, scaleR: layoutBaseR };
     }
 
     function draw() {
+      computeLayout();
       ctx.clearRect(0, 0, width, height);
 
       const R = 1.0; // unit sphere
