@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Bloch Sphere Simulator | Malcolm Low</title>
+  <meta name="description" content="Explore single-qubit quantum states, polar angle θ, azimuthal relative phase ϕ, and basis state projections in real time with an interactive 3D Bloch sphere.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --accent-purple: #c084fc;
+      --accent-yellow: #facc15;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .top-bar {
+      position: absolute;
+      top: 18px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .top-bar h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+    .top-bar p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .badge {
+      background: #1e293b;
+      border: 1px solid var(--accent-blue);
+      color: var(--accent-blue);
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .panel {
+      position: absolute;
+      top: 18px;
+      right: 24px;
+      width: 380px;
+      max-height: calc(100vh - 36px);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 12px;
+      padding: 18px 20px;
+      z-index: 10;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    .panel::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    .section-title {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .btn-preset {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-main);
+      padding: 8px 6px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .btn-preset span.sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-preset:hover {
+      background: #334155;
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+    .btn-preset.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      font-weight: 700;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.85rem;
+    }
+    .slider-header .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .val-theta { color: var(--accent-blue); }
+    .val-phi { color: var(--accent-green); }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: #334155;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    }
+    #slider-theta::-webkit-slider-thumb {
+      background: var(--accent-blue);
+    }
+    #slider-phi::-webkit-slider-thumb {
+      background: var(--accent-green);
+    }
+    .math-card {
+      background: #060913;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.84rem;
+      line-height: 1.6;
+    }
+    .math-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .math-row:last-child {
+      margin-bottom: 0;
+    }
+    .state-eq {
+      color: #f1f5f9;
+      font-size: 0.88rem;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    .prob-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .prob-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .prob-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bar-bg {
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.1s ease;
+    }
+    .bar-p0 { background: #38bdf8; }
+    .bar-p1 { background: #f87171; }
+    .btn-action {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: var(--text-main);
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-action:hover {
+      background: #334155;
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+    .btn-action.active {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .footer-link {
+      margin-top: 4px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .footer-link a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .footer-link a:hover {
+      text-decoration: underline;
+    }
+    .hint-box {
+      position: absolute;
+      bottom: 20px;
+      left: 24px;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid #334155;
+      backdrop-filter: blur(8px);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+    @media (max-width: 860px) {
+      body {
+        overflow-y: auto;
+      }
+      .panel {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: calc(100% - 32px);
+        margin: calc(52vh + 20px) 16px 20px 16px;
+        max-height: none;
+      }
+      #canvas-container {
+        height: 52vh;
+      }
+      .hint-box {
+        bottom: calc(100vh - 50vh);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>
+      <span>⚛️ Bloch Sphere Simulator</span>
+      <span class="badge">Module 2</span>
+    </h1>
+    <p>3D Single-Qubit Parameterization: Polar Angle &theta; &amp; Azimuthal Phase &#981;</p>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="bloch-canvas"></canvas>
+  </div>
+
+  <div class="hint-box">
+    <span>🖱️ Drag: Rotate 3D View</span> &bull; 
+    <span>Scroll / Pinch: Zoom</span> &bull; 
+    <span>Click Presets: Snap State</span>
+  </div>
+
+  <div class="panel">
+    <!-- Presets -->
+    <div>
+      <div class="section-title">
+        <span>Section 1 Basis Presets</span>
+      </div>
+      <div class="presets-grid">
+        <button class="btn-preset" data-theta="0" data-phi="0" id="btn-p0">
+          <strong>|0⟩</strong>
+          <span class="sub">North (+z)</span>
+        </button>
+        <button class="btn-preset" data-theta="180" data-phi="0" id="btn-p1">
+          <strong>|1⟩</strong>
+          <span class="sub">South (&minus;z)</span>
+        </button>
+        <button class="btn-preset" data-theta="90" data-phi="0" id="btn-plus">
+          <strong>|+⟩</strong>
+          <span class="sub">+x (Real)</span>
+        </button>
+        <button class="btn-preset" data-theta="90" data-phi="180" id="btn-minus">
+          <strong>|&minus;⟩</strong>
+          <span class="sub">&minus;x (Real)</span>
+        </button>
+        <button class="btn-preset" data-theta="90" data-phi="90" id="btn-plusi">
+          <strong>|+i⟩</strong>
+          <span class="sub">+y (Imag)</span>
+        </button>
+        <button class="btn-preset" data-theta="90" data-phi="270" id="btn-minusi">
+          <strong>|&minus;i⟩</strong>
+          <span class="sub">&minus;y (Imag)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="control-group">
+      <div class="slider-header">
+        <span>Polar Angle <strong>&theta;</strong> (Colatitude)</span>
+        <span class="val val-theta" id="display-theta">58.0&deg; (0.32&pi;)</span>
+      </div>
+      <input type="range" id="slider-theta" min="0" max="180" step="0.5" value="58">
+    </div>
+
+    <div class="control-group">
+      <div class="slider-header">
+        <span>Azimuthal Phase <strong>&#981;</strong> (Equator)</span>
+        <span class="val val-phi" id="display-phi">54.0&deg; (0.30&pi;)</span>
+      </div>
+      <input type="range" id="slider-phi" min="0" max="360" step="0.5" value="54">
+    </div>
+
+    <!-- Animation -->
+    <button class="btn-action" id="btn-animate">
+      <span id="anim-icon">▶</span>
+      <span id="anim-text">Auto-Sweep Relative Phase &#981;</span>
+    </button>
+
+    <!-- Probabilities -->
+    <div class="prob-bar-container">
+      <div class="section-title">
+        <span>Measurement Probabilities</span>
+      </div>
+      <div class="prob-item">
+        <div class="prob-meta">
+          <span>P(0) = cos&sup2;(&theta;/2)</span>
+          <span id="prob-0-val" style="color:#38bdf8">76.5%</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill bar-p0" id="bar-p0" style="width: 76.5%"></div>
+        </div>
+      </div>
+      <div class="prob-item">
+        <div class="prob-meta">
+          <span>P(1) = sin&sup2;(&theta;/2)</span>
+          <span id="prob-1-val" style="color:#f87171">23.5%</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill bar-p1" id="bar-p1" style="width: 23.5%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mathematical State -->
+    <div>
+      <div class="section-title">
+        <span>Quantum State Representation</span>
+      </div>
+      <div class="math-card">
+        <div class="state-eq" id="math-state-eq">
+          |&psi;&rang; = 0.875 |0&rang; + (0.285 + 0.392i) |1&rang;
+        </div>
+        <div class="math-row">
+          <span style="color:var(--text-muted)">&alpha; = cos(&theta;/2):</span>
+          <span id="math-alpha">0.875</span>
+        </div>
+        <div class="math-row">
+          <span style="color:var(--text-muted)">&beta; = e<sup>i&#981;</sup>sin(&theta;/2):</span>
+          <span id="math-beta">0.285 + 0.392i</span>
+        </div>
+        <div class="math-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed #1e293b">
+          <span style="color:var(--text-muted)">Bloch (r_x, r_y, r_z):</span>
+          <span id="math-coords">(0.50, 0.69, 0.53)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-link">
+      Companion Guide: <a href="https://malcolmlow.com/2026/09/03/bloch-sphere-basis-states-x-z-gates/" target="_blank">Bloch Sphere Basis States: X vs Z Gates &amp; Phase Rotations</a> &bull; by Malcolm Low
+    </div>
+  </div>
+
+  <script>
+    // 3D Canvas Vector Engine (Zero External Dependencies, 60fps Native)
+    const canvas = document.getElementById('bloch-canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let width = 0;
+    let height = 0;
+    let dpr = window.devicePixelRatio || 1;
+
+    // Camera view angles (rotations around sphere center)
+    // Initialize with nice matching perspective (elev=20 deg, azim=16 deg)
+    let rotX = 0.34; // elevation in radians
+    let rotY = -0.32; // azimuth in radians
+    let zoom = 1.0;
+
+    // Qubit parameters
+    let thetaDeg = 58.0;
+    let phiDeg = 54.0;
+    let isAnimating = false;
+
+    // DOM Elements
+    const sliderTheta = document.getElementById('slider-theta');
+    const sliderPhi = document.getElementById('slider-phi');
+    const displayTheta = document.getElementById('display-theta');
+    const displayPhi = document.getElementById('display-phi');
+    const prob0Val = document.getElementById('prob-0-val');
+    const prob1Val = document.getElementById('prob-1-val');
+    const barP0 = document.getElementById('bar-p0');
+    const barP1 = document.getElementById('bar-p1');
+    const mathStateEq = document.getElementById('math-state-eq');
+    const mathAlpha = document.getElementById('math-alpha');
+    const mathBeta = document.getElementById('math-beta');
+    const mathCoords = document.getElementById('math-coords');
+    const btnAnimate = document.getElementById('btn-animate');
+    const animIcon = document.getElementById('anim-icon');
+    const animText = document.getElementById('anim-text');
+    const presetButtons = document.querySelectorAll('.btn-preset');
+
+    function resize() {
+      width = container.clientWidth;
+      height = container.clientHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+    window.addEventListener('resize', resize);
+
+    // 3D Math & Projection
+    // Physics axes:
+    // +x points forward/right, +y points right/depth, +z points vertically up.
+    function project3D(x, y, z, radius) {
+      // Rotate around X axis (elevation / tilt)
+      // Rotate around Z axis (azimuth)
+      // Let's standard 3D rotation matrix:
+      // First rotate around vertical Z axis by rotY:
+      const cosY = Math.cos(rotY);
+      const sinY = Math.sin(rotY);
+      const x1 = x * cosY - y * sinY;
+      const y1 = x * sinY + y * cosY;
+      const z1 = z;
+
+      // Then pitch around screen horizontal axis by rotX:
+      const cosX = Math.cos(rotX);
+      const sinX = Math.sin(rotX);
+      const x2 = x1;
+      const y2 = y1 * cosX - z1 * sinX;
+      const z2 = y1 * sinX + z1 * cosX;
+
+      // Center of projection: center of canvas, shifted slightly left to balance panel
+      const cx = width > 860 ? (width - 380) * 0.5 : width * 0.5;
+      const cy = height * 0.52;
+
+      // Scale factor based on canvas size
+      const baseR = Math.min(width * 0.35, height * 0.38) * zoom;
+      const screenX = cx + x2 * baseR;
+      const screenY = cy - z2 * baseR; // y2 is depth into screen
+
+      return { x: screenX, y: screenY, depth: y2, scaleR: baseR };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      const R = 1.0; // unit sphere
+      const pCenter = project3D(0, 0, 0, R);
+      const sphereR = pCenter.scaleR;
+
+      // 1. Shaded Sphere Background
+      const grad = ctx.createRadialGradient(
+        pCenter.x - sphereR * 0.3, pCenter.y - sphereR * 0.3, sphereR * 0.1,
+        pCenter.x, pCenter.y, sphereR
+      );
+      grad.addColorStop(0, 'rgba(30, 41, 59, 0.45)');
+      grad.addColorStop(0.7, 'rgba(15, 23, 42, 0.35)');
+      grad.addColorStop(1, 'rgba(15, 23, 42, 0.7)');
+
+      ctx.beginPath();
+      ctx.arc(pCenter.x, pCenter.y, sphereR, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Outer rim
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 2. Latitude & Longitude Wireframe Grid
+      ctx.lineWidth = 0.75;
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.22)';
+
+      // Latitudes
+      for (let latDeg = -60; latDeg <= 60; latDeg += 30) {
+        if (latDeg === 0) continue; // equator drawn separately
+        const latRad = (latDeg * Math.PI) / 180;
+        const rLat = Math.cos(latRad);
+        const zLat = Math.sin(latRad);
+        ctx.beginPath();
+        for (let i = 0; i <= 60; i++) {
+          const u = (i / 60) * Math.PI * 2;
+          const pt = project3D(rLat * Math.cos(u), rLat * Math.sin(u), zLat, R);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+      }
+
+      // Longitudes
+      for (let lonDeg = 0; lonDeg < 180; lonDeg += 45) {
+        const lonRad = (lonDeg * Math.PI) / 180;
+        ctx.beginPath();
+        for (let i = 0; i <= 60; i++) {
+          const v = (i / 60) * Math.PI * 2;
+          const px = Math.sin(v) * Math.cos(lonRad);
+          const py = Math.sin(v) * Math.sin(lonRad);
+          const pz = Math.cos(v);
+          const pt = project3D(px, py, pz, R);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+      }
+
+      // 3. Equator Ring (Dashed, prominent)
+      ctx.save();
+      ctx.beginPath();
+      for (let i = 0; i <= 80; i++) {
+        const u = (i / 80) * Math.PI * 2;
+        const pt = project3D(Math.cos(u), Math.sin(u), 0, R);
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. Coordinate Axes
+      const axisLen = 1.35;
+      function drawAxis(ax, ay, az, label, color) {
+        const pStart = project3D(-ax * axisLen, -ay * axisLen, -az * axisLen, R);
+        const pEnd = project3D(ax * axisLen, ay * axisLen, az * axisLen, R);
+
+        ctx.beginPath();
+        ctx.moveTo(pStart.x, pStart.y);
+        ctx.lineTo(pEnd.x, pEnd.y);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // Label
+        const pLbl = project3D(ax * (axisLen + 0.12), ay * (axisLen + 0.12), az * (axisLen + 0.12), R);
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.fillStyle = color || '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, pLbl.x, pLbl.y);
+      }
+
+      drawAxis(1, 0, 0, '+x', '#cbd5e1');
+      drawAxis(0, 1, 0, '+y', '#cbd5e1');
+      drawAxis(0, 0, 1, '+z', '#cbd5e1');
+
+      // 5. Basis State Markers
+      function drawStateMarker(x, y, z, label, color, offset) {
+        const pt = project3D(x, y, z, R);
+
+        // Marker dot
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Label
+        ctx.font = 'bold 14px "JetBrains Mono", monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = offset.align || 'center';
+        ctx.textBaseline = offset.baseline || 'middle';
+        ctx.fillText(label, pt.x + (offset.dx || 0), pt.y + (offset.dy || 0));
+      }
+
+      // Poles
+      drawStateMarker(0, 0, 1, '|0⟩', '#38bdf8', { dx: -18, dy: -6, align: 'right' });
+      drawStateMarker(0, 0, -1, '|1⟩', '#f87171', { dx: -18, dy: 6, align: 'right' });
+
+      // Equator Cardinal States
+      drawStateMarker(1, 0, 0, '|+⟩', '#facc15', { dx: 14, dy: 10, align: 'left' });
+      drawStateMarker(-1, 0, 0, '|−⟩', '#facc15', { dx: -14, dy: -10, align: 'right' });
+      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: 18, dy: -4, align: 'left' });
+      drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: -18, dy: 4, align: 'right' });
+
+      // 6. Current State Vector (|psi>)
+      const thRad = (thetaDeg * Math.PI) / 180;
+      const phRad = (phiDeg * Math.PI) / 180;
+      const px = Math.sin(thRad) * Math.cos(phRad);
+      const py = Math.sin(thRad) * Math.sin(phRad);
+      const pz = Math.cos(thRad);
+
+      const pOrigin = project3D(0, 0, 0, R);
+      const pTip = project3D(px, py, pz, R);
+      const pProj = project3D(px, py, 0, R);
+
+      // Equator Drop Line (from tip to projection)
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(pTip.x, pTip.y);
+      ctx.lineTo(pProj.x, pProj.y);
+      ctx.stroke();
+
+      // Radius line from origin to projected point
+      ctx.beginPath();
+      ctx.moveTo(pOrigin.x, pOrigin.y);
+      ctx.lineTo(pProj.x, pProj.y);
+      ctx.stroke();
+      ctx.restore();
+
+      // Projected dot on equator plane
+      ctx.beginPath();
+      ctx.arc(pProj.x, pProj.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fill();
+
+      // 7. Polar Angle (theta) Arc in Blue
+      if (thRad > 0.05) {
+        ctx.beginPath();
+        const arcSteps = 24;
+        const arcR = 0.44;
+        for (let i = 0; i <= arcSteps; i++) {
+          const frac = i / arcSteps;
+          const aTh = thRad * frac;
+          const ax = Math.sin(aTh) * Math.cos(phRad) * arcR;
+          const ay = Math.sin(aTh) * Math.sin(phRad) * arcR;
+          const az = Math.cos(aTh) * arcR;
+          const pt = project3D(ax, ay, az, R);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Theta label
+        const midTh = thRad * 0.48;
+        const thLbl = project3D(
+          Math.sin(midTh) * Math.cos(phRad) * arcR * 1.32,
+          Math.sin(midTh) * Math.sin(phRad) * arcR * 1.32,
+          Math.cos(midTh) * arcR * 1.32,
+          R
+        );
+        ctx.font = 'bold 15px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#38bdf8';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('θ', thLbl.x, thLbl.y);
+      }
+
+      // 8. Azimuthal Angle (phi) Arc in Green
+      if (phRad > 0.05) {
+        ctx.beginPath();
+        const arcSteps = 24;
+        const arcR = 0.46;
+        for (let i = 0; i <= arcSteps; i++) {
+          const frac = i / arcSteps;
+          const aPh = phRad * frac;
+          const ax = Math.cos(aPh) * arcR;
+          const ay = Math.sin(aPh) * arcR;
+          const pt = project3D(ax, ay, 0, R);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Phi label
+        const midPh = phRad * 0.46;
+        const phLbl = project3D(
+          Math.cos(midPh) * arcR * 1.34,
+          Math.sin(midPh) * arcR * 1.34,
+          -0.12,
+          R
+        );
+        ctx.font = 'bold 15px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#4ade80';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ϕ', phLbl.x, phLbl.y);
+      }
+
+      // 9. State Vector Arrow (|psi>)
+      ctx.beginPath();
+      ctx.moveTo(pOrigin.x, pOrigin.y);
+      ctx.lineTo(pTip.x, pTip.y);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      // State vector tip sphere
+      ctx.beginPath();
+      ctx.arc(pTip.x, pTip.y, 6.0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // State label |psi>
+      const dxTip = pTip.x - pOrigin.x;
+      const dyTip = pTip.y - pOrigin.y;
+      const lenTip = Math.hypot(dxTip, dyTip) || 1;
+      const psiLblX = pTip.x + (dxTip / lenTip) * 22;
+      const psiLblY = pTip.y + (dyTip / lenTip) * 22;
+
+      ctx.font = 'bold 16px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#f87171';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('|ψ⟩', psiLblX, psiLblY);
+    }
+
+    // Interactive Mouse & Touch Drag Controls
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+
+      rotY += dx * 0.008;
+      rotX += dy * 0.008;
+      // Clamp elevation
+      rotX = Math.max(-Math.PI * 0.45, Math.min(Math.PI * 0.45, rotX));
+      draw();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch Support
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        lastMouseX = e.touches[0].clientX;
+        lastMouseY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - lastMouseX;
+      const dy = e.touches[0].clientY - lastMouseY;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+
+      rotY += dx * 0.008;
+      rotX += dy * 0.008;
+      rotX = Math.max(-Math.PI * 0.45, Math.min(Math.PI * 0.45, rotX));
+      draw();
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    // Wheel Zoom
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      zoom *= (e.deltaY > 0 ? 0.95 : 1.05);
+      zoom = Math.max(0.6, Math.min(2.0, zoom));
+      draw();
+    }, { passive: false });
+
+    // State Math Updating
+    function updateStateUI() {
+      const thRad = (thetaDeg * Math.PI) / 180;
+      const phRad = (phiDeg * Math.PI) / 180;
+
+      const px = Math.sin(thRad) * Math.cos(phRad);
+      const py = Math.sin(thRad) * Math.sin(phRad);
+      const pz = Math.cos(thRad);
+
+      const alpha = Math.cos(thRad / 2);
+      const betaMag = Math.sin(thRad / 2);
+      const betaReal = betaMag * Math.cos(phRad);
+      const betaImag = betaMag * Math.sin(phRad);
+
+      const p0 = alpha * alpha;
+      const p1 = betaMag * betaMag;
+
+      sliderTheta.value = thetaDeg;
+      sliderPhi.value = phiDeg;
+
+      displayTheta.textContent = `${thetaDeg.toFixed(1)}° (${(thRad / Math.PI).toFixed(2)}π)`;
+      displayPhi.textContent = `${phiDeg.toFixed(1)}° (${(phRad / Math.PI).toFixed(2)}π)`;
+
+      prob0Val.textContent = `${(p0 * 100).toFixed(1)}%`;
+      prob1Val.textContent = `${(p1 * 100).toFixed(1)}%`;
+      barP0.style.width = `${(p0 * 100).toFixed(1)}%`;
+      barP1.style.width = `${(p1 * 100).toFixed(1)}%`;
+
+      const signBeta = betaImag >= 0 ? '+' : '−';
+      const absBetaImag = Math.abs(betaImag);
+
+      mathStateEq.innerHTML = `|ψ⟩ = ${alpha.toFixed(3)} |0⟩ + (${betaReal.toFixed(3)} ${signBeta} ${absBetaImag.toFixed(3)}i) |1⟩`;
+      mathAlpha.textContent = `${alpha.toFixed(3)}`;
+      mathBeta.textContent = `${betaReal.toFixed(3)} ${signBeta} ${absBetaImag.toFixed(3)}i`;
+      mathCoords.textContent = `(${px.toFixed(2)}, ${py.toFixed(2)}, ${pz.toFixed(2)})`;
+
+      checkActivePreset();
+      draw();
+    }
+
+    function checkActivePreset() {
+      presetButtons.forEach(btn => {
+        const bTh = parseFloat(btn.dataset.theta);
+        const bPh = parseFloat(btn.dataset.phi);
+        if (Math.abs(bTh - thetaDeg) < 1.0 && (bTh === 0 || bTh === 180 || Math.abs(bPh - phiDeg) < 1.0)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    sliderTheta.addEventListener('input', (e) => {
+      thetaDeg = parseFloat(e.target.value);
+      updateStateUI();
+    });
+
+    sliderPhi.addEventListener('input', (e) => {
+      phiDeg = parseFloat(e.target.value);
+      updateStateUI();
+    });
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        thetaDeg = parseFloat(btn.dataset.theta);
+        phiDeg = parseFloat(btn.dataset.phi);
+        if (isAnimating) stopAnimation();
+        updateStateUI();
+      });
+    });
+
+    function startAnimation() {
+      isAnimating = true;
+      btnAnimate.classList.add('active');
+      animIcon.textContent = '⏸';
+      animText.textContent = 'Pause Phase Precession';
+    }
+
+    function stopAnimation() {
+      isAnimating = false;
+      btnAnimate.classList.remove('active');
+      animIcon.textContent = '▶';
+      animText.textContent = 'Auto-Sweep Relative Phase ϕ';
+    }
+
+    btnAnimate.addEventListener('click', () => {
+      if (isAnimating) {
+        stopAnimation();
+      } else {
+        if (thetaDeg === 0 || thetaDeg === 180) thetaDeg = 90;
+        startAnimation();
+      }
+    });
+
+    function loop() {
+      if (isAnimating) {
+        phiDeg = (phiDeg + 0.8) % 360;
+        updateStateUI();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    resize();
+    updateStateUI();
+    loop();
+  </script>
+</body>
+</html>
