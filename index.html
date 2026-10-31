@@ -292,7 +292,7 @@
     }
     .hint-box {
       position: absolute;
-      bottom: 20px;
+      bottom: 10px;
       left: 24px;
       z-index: 10;
       background: rgba(15, 23, 42, 0.75);
@@ -531,10 +531,10 @@
 
       // Center of projection: center of canvas, shifted slightly left to balance panel
       const cx = width > 860 ? (width - 380) * 0.5 : width * 0.5;
-      const cy = height * 0.52;
+      const cy = height * 0.545;
 
       // Scale factor based on canvas size
-      const baseR = Math.min(width * 0.35, height * 0.38) * zoom;
+      const baseR = Math.min(width * 0.265, height * 0.27) * zoom;
       const screenX = cx + x2 * baseR;
       const screenY = cy - z2 * baseR; // y2 is depth into screen
 
