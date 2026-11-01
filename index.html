@@ -692,8 +692,9 @@
         ctx.stroke();
 
         // Label
-        const pLbl = project3D(ax * (axisLen + 0.12), ay * (axisLen + 0.12), az * (axisLen + 0.12), R);
-        ctx.font = 'bold 13px Inter, sans-serif';
+        const extra = (ax === 0 && ay === 1 && az === 0) ? 0.28 : 0.12;
+        const pLbl = project3D(ax * (axisLen + extra), ay * (axisLen + extra), az * (axisLen + extra), R);
+        ctx.font = 'bold 12px Inter, -apple-system, sans-serif';
         ctx.fillStyle = color || '#94a3b8';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -733,8 +734,8 @@
             // Equator Cardinal States
       drawStateMarker(1, 0, 0, '|+⟩', '#facc15', { dx: 12, dy: 10, align: 'left' });
       drawStateMarker(-1, 0, 0, '|−⟩', '#facc15', { dx: -12, dy: -10, align: 'right' });
-      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: 7, dy: -1, align: 'left' });
-      drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: -12, dy: 4, align: 'right' });
+      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: -2, dy: -13, align: 'center' });
+      drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: 0, dy: -12, align: 'center' });
 
 // 6. Current State Vector (|psi>)
       const thRad = (thetaDeg * Math.PI) / 180;
