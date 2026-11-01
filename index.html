@@ -718,7 +718,7 @@
         ctx.stroke();
 
         // Label
-        ctx.font = 'bold 14px "JetBrains Mono", monospace';
+        ctx.font = '600 12px Inter, -apple-system, sans-serif';
         ctx.fillStyle = color;
         ctx.textAlign = offset.align || 'center';
         ctx.textBaseline = offset.baseline || 'middle';
@@ -727,14 +727,14 @@
 
 
       // Poles
-      drawStateMarker(0, 0, 1, '|0⟩', '#38bdf8', { dx: -18, dy: -6, align: 'right' });
-      drawStateMarker(0, 0, -1, '|1⟩', '#f87171', { dx: -18, dy: 6, align: 'right' });
+      drawStateMarker(0, 0, 1, '|0⟩', '#38bdf8', { dx: -16, dy: -6, align: 'right' });
+      drawStateMarker(0, 0, -1, '|1⟩', '#f87171', { dx: -16, dy: 6, align: 'right' });
 
             // Equator Cardinal States
-      drawStateMarker(1, 0, 0, '|+⟩', '#facc15', { dx: 14, dy: 10, align: 'left' });
-      drawStateMarker(-1, 0, 0, '|−⟩', '#facc15', { dx: -14, dy: -10, align: 'right' });
-      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: 8, dy: -1, align: 'left' });
-      drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: -14, dy: 4, align: 'right' });
+      drawStateMarker(1, 0, 0, '|+⟩', '#facc15', { dx: 12, dy: 10, align: 'left' });
+      drawStateMarker(-1, 0, 0, '|−⟩', '#facc15', { dx: -12, dy: -10, align: 'right' });
+      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: 7, dy: -1, align: 'left' });
+      drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: -12, dy: 4, align: 'right' });
 
 // 6. Current State Vector (|psi>)
       const thRad = (thetaDeg * Math.PI) / 180;
@@ -797,7 +797,7 @@
           Math.cos(midTh) * arcR * 1.32,
           R
         );
-        ctx.font = 'bold 15px "JetBrains Mono", monospace';
+        ctx.font = '600 13px Inter, -apple-system, sans-serif';
         ctx.fillStyle = '#38bdf8';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -830,7 +830,7 @@
           -0.12,
           R
         );
-        ctx.font = 'bold 15px "JetBrains Mono", monospace';
+        ctx.font = '600 13px Inter, -apple-system, sans-serif';
         ctx.fillStyle = '#4ade80';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -858,10 +858,10 @@
       const dxTip = pTip.x - pOrigin.x;
       const dyTip = pTip.y - pOrigin.y;
       const lenTip = Math.hypot(dxTip, dyTip) || 1;
-      const psiLblX = pTip.x + (dxTip / lenTip) * 22;
-      const psiLblY = pTip.y + (dyTip / lenTip) * 22;
+      const psiLblX = pTip.x + (dxTip / lenTip) * 19;
+      const psiLblY = pTip.y + (dyTip / lenTip) * 19;
 
-      ctx.font = 'bold 16px "JetBrains Mono", monospace';
+      ctx.font = '600 14px Inter, -apple-system, sans-serif';
       ctx.fillStyle = '#f87171';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
