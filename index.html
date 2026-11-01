@@ -679,7 +679,7 @@
       ctx.restore();
 
       // 4. Coordinate Axes
-      const axisLen = 1.35;
+            const axisLen = 1.35;
       function drawAxis(ax, ay, az, label, color) {
         const pStart = project3D(-ax * axisLen, -ay * axisLen, -az * axisLen, R);
         const pEnd = project3D(ax * axisLen, ay * axisLen, az * axisLen, R);
@@ -730,35 +730,13 @@
       drawStateMarker(0, 0, 1, '|0⟩', '#38bdf8', { dx: -18, dy: -6, align: 'right' });
       drawStateMarker(0, 0, -1, '|1⟩', '#f87171', { dx: -18, dy: 6, align: 'right' });
 
-      // Equator Cardinal States
+            // Equator Cardinal States
       drawStateMarker(1, 0, 0, '|+⟩', '#facc15', { dx: 14, dy: 10, align: 'left' });
       drawStateMarker(-1, 0, 0, '|−⟩', '#facc15', { dx: -14, dy: -10, align: 'right' });
-      
-      
-      // |+i⟩ positioned vertically higher than the +y label (above the +y axis tip)
-      const pYTip = project3D(0, axisLen + 0.12, 0, R);
-      const ptPlusI = project3D(0, 1, 0, R);
-      
-      // Draw purple dot at (0, 1, 0)
-      ctx.beginPath();
-      ctx.arc(ptPlusI.x, ptPlusI.y, 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#c084fc';
-      ctx.fill();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Label placed vertically higher than +y label
-      ctx.font = 'bold 14px "JetBrains Mono", monospace';
-      ctx.fillStyle = '#c084fc';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('|+i⟩', pYTip.x, pYTip.y - 14);
-
+      drawStateMarker(0, 1, 0, '|+i⟩', '#c084fc', { dx: 8, dy: -1, align: 'left' });
       drawStateMarker(0, -1, 0, '|−i⟩', '#c084fc', { dx: -14, dy: 4, align: 'right' });
 
-
-      // 6. Current State Vector (|psi>)
+// 6. Current State Vector (|psi>)
       const thRad = (thetaDeg * Math.PI) / 180;
       const phRad = (phiDeg * Math.PI) / 180;
       const px = Math.sin(thRad) * Math.cos(phRad);
